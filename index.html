@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Browser Arcade</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#0b0620;--pink:#ff3ea5;--cyan:#4de1ff;--gold:#ffcf3a;--orange:#ff6b3d;--ink:#fff}
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);overflow:hidden;
+    font-family:'Press Start 2P',ui-monospace,monospace;user-select:none;-webkit-user-select:none}
+  #bg{position:fixed;inset:0;width:100%;height:100%;image-rendering:pixelated}
+  #scan{position:fixed;inset:0;pointer-events:none;z-index:9;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px)}
+  #vig{position:fixed;inset:0;pointer-events:none;z-index:9;background:radial-gradient(ellipse at center,transparent 50%,rgba(0,0,0,.6))}
+  main{position:relative;z-index:2;height:100%;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;gap:clamp(14px,3.5vh,34px);padding:16px}
+  .coin{font-size:clamp(8px,1.4vw,11px);color:var(--cyan);letter-spacing:2px;text-shadow:0 0 8px var(--cyan)}
+  h1{margin:0;text-align:center;font-weight:400;line-height:1.25;font-size:clamp(26px,6.4vw,64px);
+    color:var(--gold);letter-spacing:3px;
+    text-shadow:4px 4px 0 var(--pink),8px 8px 0 #5a1366,0 0 30px rgba(255,62,165,.6);
+    animation:bob 3s ease-in-out infinite}
+  h1 small{display:block;font-size:.34em;color:var(--cyan);letter-spacing:6px;margin-top:10px;
+    text-shadow:2px 2px 0 #0a3a66}
+  @keyframes bob{50%{transform:translateY(-6px)}}
+  .cards{display:flex;gap:clamp(16px,3vw,40px);flex-wrap:wrap;justify-content:center;width:100%;max-width:980px}
+  .card{--c:var(--gold);flex:1 1 300px;max-width:450px;cursor:pointer;background:rgba(10,5,35,.82);
+    border:4px solid #3b2a6e;padding:14px;position:relative;text-align:center;
+    box-shadow:6px 6px 0 #000;transition:transform .12s,border-color .12s,box-shadow .12s}
+  .card.sel{border-color:var(--c);transform:translate(-3px,-5px) scale(1.02);
+    box-shadow:9px 11px 0 #000,0 0 28px color-mix(in srgb,var(--c) 60%,transparent)}
+  .card.sel::before{content:"▶";position:absolute;left:-30px;top:50%;margin-top:-10px;color:var(--c);
+    font-size:20px;animation:pt .5s steps(2) infinite}
+  @keyframes pt{50%{transform:translateX(5px)}}
+  .card canvas{width:100%;aspect-ratio:16/9;display:block;image-rendering:pixelated;border:3px solid #000;background:#000}
+  .card h2{margin:14px 0 8px;font-weight:400;font-size:clamp(14px,2.2vw,19px);color:var(--c);text-shadow:3px 3px 0 #000}
+  .card p{margin:0 0 12px;font-size:9px;line-height:1.9;color:#cdbfff}
+  .card .keys{font-size:8px;color:#8f84c4;line-height:2}
+  .card .keys b{color:var(--ink);background:#2b1d5c;border:2px solid #4a3a90;padding:2px 5px;font-weight:400;margin:0 1px}
+  .badge{position:absolute;top:-12px;right:10px;background:var(--c);color:#000;font-size:8px;padding:6px 8px;box-shadow:3px 3px 0 #000}
+  .start{font-size:clamp(10px,1.8vw,14px);color:#fff;animation:blink 1s steps(2) infinite;text-shadow:0 0 10px var(--pink)}
+  @keyframes blink{50%{opacity:0}}
+  .help{font-size:8px;color:#8f84c4;line-height:2;text-align:center}
+  .help b{color:var(--cyan);font-weight:400}
+  #pad{display:none;gap:14px}
+  #pad button{font-family:inherit;font-size:14px;color:#fff;background:#1a1040;border:3px solid #fff;
+    padding:14px 18px;box-shadow:4px 4px 0 #000;touch-action:manipulation}
+  #pad button:active{transform:translate(3px,3px);box-shadow:1px 1px 0 #000}
+  #pad .go{background:var(--pink)}
+  @media (pointer:coarse){#pad{display:flex}.help{display:none}}
+  @media (max-height:700px){.card p{display:none}.card .keys{display:none}}
+  @media (max-width:700px){.card.sel::before{display:none}.cards{gap:14px}}
+  #fade{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:10;transition:opacity .35s}
+  #mute{position:fixed;right:14px;top:12px;z-index:11;font-family:inherit;font-size:9px;color:var(--cyan);
+    background:none;border:0;cursor:pointer;text-shadow:0 0 8px var(--cyan)}
+</style>
+</head>
+<body>
+<canvas id="bg"></canvas>
+<div id="scan"></div><div id="vig"></div><div id="fade"></div>
+<button id="mute" aria-label="Toggle sound">SND: ON</button>
+
+<main>
+  <div class="coin">★ 1 PLAYER · INSERT COIN ★</div>
+  <h1>BROWSER<br>ARCADE<small>SELECT YOUR GAME</small></h1>
+
+  <div class="cards">
+    <a class="card sel" id="c0" href="bite-club/index.html" style="--c:#ff6b3d" data-i="0">
+      <span class="badge">PLATFORMER</span>
+      <canvas width="160" height="90" id="art0"></canvas>
+      <h2>BITE CLUB</h2>
+      <p>Sit. Stay. Good dog.<br>Chomp every human you meet.</p>
+      <div class="keys"><b>←</b><b>→</b> MOVE &nbsp; <b>SPACE</b> JUMP &nbsp; <b>X</b> BITE</div>
+    </a>
+    <a class="card" id="c1" href="cloudbreaker/index.html" style="--c:#4de1ff" data-i="1">
+      <span class="badge">SHOOTER</span>
+      <canvas width="160" height="90" id="art1"></canvas>
+      <h2>CLOUDBREAKER</h2>
+      <p>A retro aerial shooter.<br>Punch through the storm.</p>
+      <div class="keys"><b>←</b><b>→</b> STEER &nbsp; <b>SPACE</b> FIRE</div>
+    </a>
+  </div>
+
+  <div class="start">PRESS ENTER TO START</div>
+  <div class="help"><b>← →</b> CHOOSE &nbsp;·&nbsp; <b>ENTER</b> / <b>SPACE</b> PLAY &nbsp;·&nbsp; <b>1</b> <b>2</b> QUICK PICK</div>
+  <div id="pad"><button data-k="l">◀</button><button class="go" data-k="go">START</button><button data-k="r">▶</button></div>
+</main>
+
+<script>
+// ---------- tiny pixel-art helpers ----------
+function px(ctx, rows, pal, x, y, s){
+  s = s || 1;
+  rows.forEach((r, j) => [...r].forEach((ch, i) => {
+    if (ch !== '.') { ctx.fillStyle = pal[ch]; ctx.fillRect(x + i*s, y + j*s, s, s); }
+  }));
+}
+const DOG = [
+  '..........oo....',
+  '.........oooo...',
+  '.........ooooo..',
+  '..oo.....owwoo..',
+  '.oooooooooowkoo.',
+  '.ooooooooooooon.',
+  '.oooooooooowwwn.',
+  '..oooooooooo.ww.',
+  '..oo.oo..oo.oo..',
+  '..dd.dd..dd.dd..'];
+const DOGP = {o:'#e08a3c', d:'#8a4a1c', w:'#fff6e6', k:'#111', n:'#222'};
+const MAN = [
+  '..hhh..','.hsssh.','.sksks.','..sss..','.bbbbb.','sbbbbbs','.bbbbb.','.ll.ll.','.ll.ll.'];
+const MANP = {h:'#5a3a20', s:'#f4c9a0', k:'#111', b:'#3d7de0', l:'#2a3a6a'};
+const PLANE = [
+  '.......rr.......',
+  '......rwwr......',
+  '......rwwr......',
+  '.rr...rwwr...rr.',
+  'rwwr.rwccwr.rwwr',
+  'rwwwrrwccwrrwwwr',
+  '.rrrrwwwwwwrrrr.',
+  '....rrwwwwrr....',
+  '......rggr......',
+  '.......yy.......'];
+const PLANEP = {r:'#ff4d6d', w:'#e8f4ff', c:'#4de1ff', g:'#888', y:'#ffcf3a'};
+
+const rnd = (a,b)=>a+Math.random()*(b-a);
+
+// ---------- card art (animated) ----------
+const a0 = document.getElementById('art0').getContext('2d');
+const a1 = document.getElementById('art1').getContext('2d');
+a0.imageSmoothingEnabled = a1.imageSmoothingEnabled = false;
+const stars1 = Array.from({length:30}, () => ({x:rnd(0,160), y:rnd(0,90), v:rnd(.3,1.4)}));
+const clouds = Array.from({length:6}, () => ({x:rnd(0,160), y:rnd(5,75), w:rnd(18,36), v:rnd(.2,.5)}));
+let bullets = [];
+
+function art0(t){
+  const g = a0.createLinearGradient(0,0,0,90); g.addColorStop(0,'#ff9a5a'); g.addColorStop(1,'#ffd88a');
+  a0.fillStyle = g; a0.fillRect(0,0,160,90);
+  a0.fillStyle = '#fff6e6'; a0.beginPath(); a0.arc(125,24,11,0,7); a0.fill();
+  a0.fillStyle = '#7a3a1e';
+  for (let i=0;i<5;i++){ const x=((i*40 - t*.01) % 200 + 200) % 200 - 20; a0.fillRect(x, 48, 22, 28); a0.fillRect(x+4,42,6,6); }
+  a0.fillStyle = '#4a8a3a'; a0.fillRect(0,76,160,14);
+  a0.fillStyle = '#2f6a28'; for (let x=0;x<160;x+=8) a0.fillRect(x,76,4,2);
+  const cyc = (t/1400)%1, dogX = 20 + cyc*70, hop = Math.abs(Math.sin(cyc*Math.PI*3))*10;
+  const mx = 100 - Math.max(0,(cyc-.85))*0;
+  if (cyc < .86) px(a0, MAN, MANP, mx, 76-18, 2);
+  else { a0.fillStyle='#fff'; a0.font='8px "Press Start 2P"'; a0.fillText('CHOMP!', 80, 40); }
+  px(a0, DOG, DOGP, dogX, 76-20-hop, 2);
+}
+function art1(t, dt){
+  const g = a1.createLinearGradient(0,0,0,90); g.addColorStop(0,'#10173f'); g.addColorStop(1,'#5a3a8a');
+  a1.fillStyle = g; a1.fillRect(0,0,160,90);
+  a1.fillStyle = '#fff';
+  stars1.forEach(s => { s.y = (s.y + s.v*dt*.03) % 90; a1.fillRect(s.x|0, s.y|0, 1, 1); });
+  clouds.forEach(c => {
+    c.y += c.v*dt*.04; if (c.y > 95) { c.y = -12; c.x = rnd(0,140); }
+    a1.fillStyle = '#c9b8ee';
+    a1.fillRect(c.x|0, c.y|0, c.w, 6); a1.fillRect((c.x+5)|0, (c.y-4)|0, c.w*.5, 5); a1.fillRect((c.x+c.w*.4)|0,(c.y+3)|0,c.w*.6,5);
+  });
+  const px0 = 72 + Math.sin(t/600)*40;
+  if (Math.random() < dt*.012) bullets.push({x:px0+7, y:68});
+  a1.fillStyle = '#ffcf3a';
+  bullets = bullets.filter(b => (b.y -= dt*.12) > -4);
+  bullets.forEach(b => a1.fillRect(b.x|0, b.y|0, 2, 5));
+  px(a1, PLANE, PLANEP, px0|0, 68, 1);
+}
+
+// ---------- animated background: synthwave grid + stars ----------
+const bg = document.getElementById('bg'), b = bg.getContext('2d');
+let W, H, stars = [];
+function resize(){
+  bg.width = W = innerWidth/2|0; bg.height = H = innerHeight/2|0;
+  stars = Array.from({length:Math.min(140, W*H/900|0)}, () => ({x:rnd(0,W), y:rnd(0,H*.6), p:rnd(0,6)}));
+}
+addEventListener('resize', resize); resize();
+function drawBg(t){
+  const hz = H*.62;
+  const g = b.createLinearGradient(0,0,0,hz); g.addColorStop(0,'#05021a'); g.addColorStop(.7,'#2a0b55'); g.addColorStop(1,'#a02a8f');
+  b.fillStyle = g; b.fillRect(0,0,W,hz);
+  stars.forEach(s => { b.fillStyle = Math.sin(t/400+s.p) > -.3 ? '#fff' : '#665a99'; b.fillRect(s.x|0, s.y|0, 1, 1); });
+  // sun
+  const sx = W/2, sr = Math.min(W,H)*.2;
+  for (let y=-sr; y<sr; y++){
+    const w = Math.sqrt(sr*sr - y*y), py = hz - sr*1.05 + y + sr;
+    if (py > hz) continue;
+    const band = (y+sr)/(2*sr);
+    if (band > .5 && ((y+sr|0) % 6) < (band-.5)*10) continue;
+    b.fillStyle = `hsl(${50 - band*45},100%,${62 - band*8}%)`;
+    b.fillRect(sx-w, py, w*2, 1);
+  }
+  b.fillStyle = '#12052e'; b.fillRect(0,hz,W,H-hz);
+  // perspective grid
+  b.strokeStyle = '#ff3ea5'; b.lineWidth = 1;
+  b.beginPath();
+  for (let i=-20;i<=20;i++){ b.moveTo(sx + i*4, hz); b.lineTo(sx + i*(W/10), H); }
+  const off = (t/1200)%1;
+  for (let i=0;i<14;i++){
+    const k = Math.pow((i+off)/14, 2.2), y = hz + k*(H-hz);
+    b.moveTo(0,y); b.lineTo(W,y);
+  }
+  b.stroke();
+  b.fillStyle = '#ff3ea5'; b.fillRect(0,hz|0,W,1);
+}
+
+let last = performance.now();
+function frame(t){
+  const dt = Math.min(50, t-last); last = t;
+  drawBg(t); art0(t); art1(t, dt);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+// ---------- sound (WebAudio chip blips) ----------
+let ac, muted = false;
+function blip(f, d, type, vol, slide){
+  if (muted) return;
+  try {
+    ac = ac || new (window.AudioContext||webkitAudioContext)();
+    const o = ac.createOscillator(), g = ac.createGain(), n = ac.currentTime;
+    o.type = type||'square'; o.frequency.setValueAtTime(f, n);
+    if (slide) o.frequency.exponentialRampToValueAtTime(slide, n+d);
+    g.gain.setValueAtTime(vol||.05, n); g.gain.exponentialRampToValueAtTime(.001, n+d);
+    o.connect(g).connect(ac.destination); o.start(n); o.stop(n+d);
+  } catch(e){}
+}
+const sfx = {
+  move(){ blip(520,.07,'square',.05); setTimeout(()=>blip(780,.07,'square',.05),60); },
+  start(){ [392,523,659,784,1047].forEach((f,i)=>setTimeout(()=>blip(f,.12,'square',.06),i*70)); }
+};
+const muteBtn = document.getElementById('mute');
+try { muted = localStorage.getItem('arcade-mute') === '1'; } catch(e){}
+const paintMute = () => muteBtn.textContent = 'SND: ' + (muted ? 'OFF' : 'ON');
+paintMute();
+muteBtn.onclick = e => { e.stopPropagation(); muted = !muted; try{localStorage.setItem('arcade-mute', muted?'1':'0');}catch(e){} paintMute(); sfx.move(); };
+
+// ---------- selection + launch ----------
+const cards = [...document.querySelectorAll('.card')];
+let sel = 0, going = false;
+function select(i, quiet){
+  i = (i + cards.length) % cards.length;
+  if (i !== sel && !quiet) sfx.move();
+  sel = i; cards.forEach((c,j)=>c.classList.toggle('sel', j===sel));
+}
+function launch(){
+  if (going) return; going = true; sfx.start();
+  document.getElementById('fade').style.opacity = 1;
+  setTimeout(()=>{ location.href = cards[sel].getAttribute('href'); }, 520);
+}
+addEventListener('keydown', e => {
+  if (['ArrowLeft','KeyA','ArrowUp','KeyW'].includes(e.code)) { e.preventDefault(); select(sel-1); }
+  else if (['ArrowRight','KeyD','ArrowDown','KeyS','Tab'].includes(e.code)) { e.preventDefault(); select(sel+1); }
+  else if (e.code==='Enter' || e.code==='Space') { e.preventDefault(); launch(); }
+  else if (e.code==='Digit1') { select(0); }
+  else if (e.code==='Digit2') { select(1); }
+});
+cards.forEach((c,i) => {
+  c.addEventListener('mouseenter', () => select(i));
+  c.addEventListener('click', e => { e.preventDefault(); if (sel !== i) select(i); launch(); });
+});
+document.querySelectorAll('#pad button').forEach(btn => btn.addEventListener('click', () => {
+  const k = btn.dataset.k; k==='l' ? select(sel-1) : k==='r' ? select(sel+1) : launch();
+}));
+// pageshow: reset fade when returning via back button
+addEventListener('pageshow', () => { going = false; document.getElementById('fade').style.opacity = 0; });
+</script>
+</body>
+</html>
