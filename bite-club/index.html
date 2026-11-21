@@ -54,10 +54,16 @@ kbd{display:inline-block;background:#fff;border:2px solid #e2cba9;border-bottom-
 #touch button.hot{background:var(--accent);color:#fff}
 #touch button.arrow{font-size:24px}
 @media (pointer:coarse){ #touch.live{display:flex} }
+@media (pointer:coarse){ .keys{display:none} .card{padding:14px 16px} #rotate{display:none} }
+@media (pointer:coarse) and (orientation:portrait){
+  #rotate{display:block;position:fixed;left:0;right:0;top:calc(8px + env(safe-area-inset-top));text-align:center;z-index:20;
+    font-weight:800;font-size:12px;color:#fff;background:rgba(0,0,0,.55);padding:6px;pointer-events:none}
+}
 @media (max-width:560px){ .levels{grid-template-columns:repeat(3,1fr)} .card{padding:18px 16px} }
 </style>
 </head>
 <body>
+<div id="rotate">↻ Rotate your phone for a bigger view</div>
 <div id="wrap">
   <div id="stage">
     <canvas id="game" aria-label="Bite Club game"></canvas>

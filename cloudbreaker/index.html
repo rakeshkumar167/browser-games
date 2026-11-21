@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <title>Cloudbreaker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
@@ -65,6 +65,35 @@
   .card.sel{border-color:var(--accent);transform:translateY(-6px);box-shadow:0 8px 0 #c2410c}
   .stats{font-size:12px;line-height:2.4;margin-bottom:22px}
   .stats span{color:var(--accent)}
+  /* ---------- touch / mobile ---------- */
+  #touch{position:fixed;inset:0;z-index:8;display:none;pointer-events:none;touch-action:none}
+  body.touch #touch{display:block}
+  #stick{position:absolute;left:0;top:0;width:120px;height:120px;margin:-60px 0 0 -60px;border-radius:50%;
+    border:3px solid rgba(255,255,255,.55);background:rgba(255,255,255,.12);opacity:0;pointer-events:none}
+  #stick i{position:absolute;left:50%;top:50%;width:52px;height:52px;margin:-26px 0 0 -26px;border-radius:50%;background:rgba(255,207,58,.8);border:3px solid #fff}
+  #tbtns{position:absolute;right:calc(14px + env(safe-area-inset-right));bottom:calc(16px + env(safe-area-inset-bottom));
+    display:grid;grid-template-columns:repeat(2,72px);gap:12px;pointer-events:none}
+  #tbtns button,#tpause{pointer-events:auto;touch-action:none;font-family:inherit;color:#fff;border:3px solid #fff;
+    background:rgba(0,0,0,.5);border-radius:50%;width:72px;height:72px;font-size:9px;line-height:1.5;padding:0}
+  #tbtns button.on,#tbtns button:active{background:var(--accent);color:#111;border-color:var(--accent)}
+  #tpause{position:absolute;right:calc(10px + env(safe-area-inset-right));top:calc(54px + env(safe-area-inset-top));width:44px;height:44px;font-size:14px;display:none}
+  body.touch.playing #tpause{display:block}
+  .tonly{display:none} body.touch .tonly{display:inline} body.touch .donly{display:none}
+  .obtns{display:none;gap:12px;flex-wrap:wrap;justify-content:center;margin:6px 0 18px}
+  body.touch .obtns{display:flex}
+  .obtns button{font-family:inherit;font-size:12px;padding:14px 18px;background:rgba(0,0,0,.55);color:#fff;border:3px solid #fff;cursor:pointer}
+  body.touch .overlay{overflow-y:auto;justify-content:flex-start;padding-top:calc(16px + env(safe-area-inset-top))}
+  body.touch .overlay>:first-child{margin-top:auto}body.touch .overlay>:last-child{margin-bottom:auto}
+  @media (max-width:700px),(max-height:520px){
+    #hud{font-size:9px} #hud .tl,#hud .tr,#hud .tc{top:calc(8px + env(safe-area-inset-top))}
+    #hud .tl{left:calc(8px + env(safe-area-inset-left))} #hud .tr{right:calc(8px + env(safe-area-inset-right))}
+    #hud .bl,#hud .br{display:none} #hud .tc{top:calc(34px + env(safe-area-inset-top))}
+    .bar{width:70px} .bar.boss{width:46vw}
+    .diffs{gap:10px;margin:14px 0 12px} .dbtn{min-width:0;width:100%;padding:10px;font-size:12px} .dbtn small{margin-top:6px}
+    .card{width:100%;min-height:0;padding:12px 10px;gap:6px} .cards{flex-direction:column;width:100%;max-width:340px}
+    .sub{margin-bottom:8px} .start{margin:10px 0 12px}
+    h2{margin-bottom:10px}
+  }
 </style>
 </head>
 <body>
@@ -93,6 +122,10 @@
   <div class="br"><div>ROLL <span class="bar" style="width:90px"><div id="roll"></div></span></div><div id="auto" class="small"></div></div>
 </div>
 
+<div id="touch"><div id="stick"><i></i></div>
+  <div id="tbtns"><button data-t="roll">ROLL</button><button data-t="bomb">BOMB</button><button data-t="auto" id="tauto">AUTO</button></div>
+  <button id="tpause" aria-label="Pause">II</button></div>
+
 <div id="menu" class="overlay">
   <div class="sub">A RETRO AERIAL SHOOTER</div>
   <h1 class="title">CLOUDBREAKER</h1>
@@ -102,8 +135,8 @@
     <button class="dbtn" data-d="hard" tabindex="-1">HARD<small>Bullet storm<br>2 lives · 3 hull · x1.6 pts</small></button>
   </div>
   <div id="menuHi" class="small"></div>
-  <div class="blink start">PRESS ENTER TO TAKE OFF</div>
-  <div class="controls">
+  <div class="blink start"><span class="donly">PRESS ENTER TO TAKE OFF</span><span class="tonly">TAP A DIFFICULTY TO TAKE OFF</span></div>
+  <div class="controls donly">
     <b>ARROWS / WASD</b> fly &nbsp; <b>SPACE / J</b> fire &nbsp; <b>SHIFT / X</b> barrel roll (dodge)<br>
     <b>B / K</b> bomb &nbsp; <b>F</b> autofire &nbsp; <b>P</b> pause &nbsp; <b>M</b> mute &nbsp; <b>V</b> pixel size
   </div>
@@ -112,19 +145,21 @@
 <div id="upgrade" class="overlay hidden">
   <h2>CHOOSE A POWER</h2>
   <div class="cards" id="cards"></div>
-  <div class="small">LEFT / RIGHT TO PICK · ENTER TO CONFIRM · OR PRESS 1 / 2 / 3</div>
+  <div class="small"><span class="donly">LEFT / RIGHT TO PICK · ENTER TO CONFIRM · OR PRESS 1 / 2 / 3</span><span class="tonly">TAP A POWER</span></div>
 </div>
 
 <div id="over" class="overlay hidden">
   <h2 id="overTitle">GAME OVER</h2>
   <div class="stats" id="overStats"></div>
-  <div class="blink start">ENTER = FLY AGAIN · ESC = MENU</div>
+  <div class="blink start donly">ENTER = FLY AGAIN · ESC = MENU</div>
+  <div class="obtns"><button id="bAgain">FLY AGAIN</button><button id="bMenu">MENU</button></div>
 </div>
 
 <div id="pause" class="overlay hidden">
   <h2>PAUSED</h2>
-  <div class="start">P = RESUME · Q = QUIT TO MENU</div>
-  <div class="controls">
+  <div class="start donly">P = RESUME · Q = QUIT TO MENU</div>
+  <div class="obtns"><button id="bResume">RESUME</button><button id="bQuit">QUIT</button></div>
+  <div class="controls donly">
     <b>ARROWS / WASD</b> fly &nbsp; <b>SPACE / J</b> fire &nbsp; <b>SHIFT / X</b> barrel roll<br>
     <b>B / K</b> bomb &nbsp; <b>F</b> autofire &nbsp; <b>M</b> mute &nbsp; <b>V</b> pixel size
   </div>
@@ -1480,7 +1515,7 @@ function popText(t) { const el = $('extra'); el.textContent = t; el.style.color 
 function doRoll() {
   const p = player;
   if (p.dead || p.rollCd > 0) return;
-  const ax = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
+  const ax = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0) + Math.sign(touchIn.ax);
   p.rollDir = ax || Math.sign(p.vx) || 1;
   p.rollT = .55; p.rollCd = p.rollCdMax; p.vx += p.rollDir * 55;
   sfx.roll();
@@ -1676,6 +1711,46 @@ addEventListener('keydown', e => {
   }
 });
 addEventListener('keyup', e => { keys[e.code] = false; });
+
+/* ---------- touch input ---------- */
+const IS_TOUCH = matchMedia('(pointer:coarse)').matches || 'ontouchstart' in window;
+const touchIn = { ax: 0, az: 0, fire: false };
+if (IS_TOUCH) {
+  document.body.classList.add('touch');
+  if (store.get('cb_pix3', null) === null) { PIX = 2; resize(); }
+  state.autofire = true; // thumbs steer, ship fires
+  const T = $('touch'), stick = $('stick'), knob = stick.firstElementChild, R = 55;
+  let sid = null, ox = 0, oy = 0;
+  const half = () => innerWidth * .5;
+  addEventListener('pointerdown', e => {
+    if (e.target.closest('#tbtns,#tpause,.overlay') || state.phase === 'menu') return;
+    initAudio();
+    if (sid !== null || e.clientX > half() + 40) return;
+    sid = e.pointerId; ox = e.clientX; oy = e.clientY;
+    stick.style.left = ox + 'px'; stick.style.top = oy + 'px'; stick.style.opacity = 1; knob.style.transform = '';
+  });
+  addEventListener('pointermove', e => {
+    if (e.pointerId !== sid) return;
+    let dx = e.clientX - ox, dy = e.clientY - oy; const l = Math.hypot(dx, dy);
+    if (l > R) { dx *= R / l; dy *= R / l; }
+    knob.style.transform = `translate(${dx}px,${dy}px)`;
+    const dz = .15; touchIn.ax = Math.abs(dx / R) < dz ? 0 : dx / R; touchIn.az = Math.abs(dy / R) < dz ? 0 : dy / R;
+  });
+  const end = e => { if (e.pointerId !== sid) return; sid = null; touchIn.ax = touchIn.az = 0; stick.style.opacity = 0; };
+  addEventListener('pointerup', end); addEventListener('pointercancel', end);
+  document.querySelectorAll('#tbtns button').forEach(b => b.addEventListener('pointerdown', e => {
+    e.preventDefault(); initAudio();
+    if (state.phase !== 'play') return;
+    const t = b.dataset.t;
+    if (t === 'roll') doRoll(); else if (t === 'bomb') useBomb(); else state.autofire = !state.autofire;
+  }));
+  $('tpause').addEventListener('pointerdown', e => { e.preventDefault(); togglePause(); });
+  $('bAgain').onclick = () => startGame(); $('bMenu').onclick = () => toMenu();
+  $('bResume').onclick = () => togglePause(); $('bQuit').onclick = () => { if (actx) actx.resume(); toMenu(); };
+  addEventListener('contextmenu', e => e.preventDefault());
+  document.addEventListener('touchmove', e => e.preventDefault(), { passive: false });
+  document.addEventListener('visibilitychange', () => { if (document.hidden && state.phase === 'play') togglePause(); });
+}
 addEventListener('blur', () => { for (const k in keys) keys[k] = false; if (state.phase === 'play') togglePause(); });
 
 /* =========================================================
@@ -1732,9 +1807,9 @@ function controlPlayer(dt) {
     }
     return;
   }
-  const ax = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0);
-  const az = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0);
-  const len = Math.hypot(ax, az) || 1, sp = p.speed;
+  const ax = (keys.ArrowRight || keys.KeyD ? 1 : 0) - (keys.ArrowLeft || keys.KeyA ? 1 : 0) + touchIn.ax;
+  const az = (keys.ArrowDown || keys.KeyS ? 1 : 0) - (keys.ArrowUp || keys.KeyW ? 1 : 0) + touchIn.az;
+  const len = Math.max(1, Math.hypot(ax, az)), sp = p.speed;
   const k = Math.min(1, dt * (p.rollT > 0 ? 3 : 11));
   p.vx += (ax / len * sp - p.vx) * k;
   p.vz += (az / len * sp * .85 - p.vz) * k;
@@ -1996,6 +2071,8 @@ function updHUD() {
   if (p.rapid > 0) w += ` · <span style="color:#ffe23a">RAPID ${Math.ceil(p.rapid)}</span>`;
   setText('weap', w);
   setText('auto', (state.autofire ? 'AUTOFIRE ON' : '') + (muted ? ' · MUTED' : ''));
+  document.body.classList.toggle('playing', state.phase === 'play' || state.phase === 'intro');
+  $('tauto').classList.toggle('on', state.autofire);
 }
 
 /* =========================================================
